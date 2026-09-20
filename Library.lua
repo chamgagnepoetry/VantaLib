@@ -2208,7 +2208,7 @@ do
     function Funcs:AddRainbowAccentToggle(Idx, Info)
         Info = Info or {};
         Info.Text = Info.Text or 'Rainbow Accent';
-        Info.Tooltip = Info.Tooltip or 'Cycles the accent color through a smooth rainbow while enabled.';
+        Info.Tooltip = Info.Tooltip or 'Rainbow Accent Color';
 
         local Toggle = self:AddToggle(Idx, Info);
 
@@ -2252,7 +2252,7 @@ do
         local Toggle = self:AddToggle(Idx, {
             Text = Info.Text or 'Custom Mouse Icon';
             Default = Info.Default or false;
-            Tooltip = Info.Tooltip or 'Replaces the mouse cursor (while the menu is open, or always if AlwaysOn is set). Leave the image box empty to use the default cursor, which follows the accent color.';
+            Tooltip = Info.Tooltip or 'Replaces the mouse cursor ';
         });
 
         Library.MouseIcon.Size = Info.ImageSize or Library.MouseIcon.Size;
@@ -2263,7 +2263,7 @@ do
             Default = Info.DefaultImage or '';
             Placeholder = Info.Placeholder or 'rbxassetid://123456789';
             Finished = Info.Finished or false;
-            Tooltip = 'Roblox-uploaded image id or rbxassetid:// link. Empty = default accent-colored cursor.';
+            Tooltip = 'Roblox uploaded image id. Empty = default accent colored cursor.';
         });
 
         Toggle:OnChanged(function(Value)
