@@ -141,8 +141,8 @@ end;
 
 function Library:CleanupMouseIcon()
     if MouseIconWasActive then
-        MouseIconWasActive = false;
         InputService.MouseIconEnabled = MouseIconSavedState;
+        MouseIconWasActive = false;
     end;
 
     if MouseTriangle then
@@ -154,14 +154,14 @@ function Library:CleanupMouseIcon()
     MouseIconGui:Destroy();
 end;
 
-local function UpdateMouseIcon()
+table.insert(Library.Signals, RenderStepped:Connect(function()
     local Config = Library.MouseIcon;
     local Active = Config.Enabled and (Library.Toggled or Config.AlwaysOn);
 
     if not Active then
         if MouseIconWasActive then
-            MouseIconWasActive = false;
             InputService.MouseIconEnabled = MouseIconSavedState;
+            MouseIconWasActive = false;
             HideMouseIcon();
         end;
 
@@ -223,32 +223,10 @@ local function UpdateMouseIcon()
 
         InputService.MouseIconEnabled = false;
     elseif MouseIconWasActive then
-        MouseIconWasActive = false;
         InputService.MouseIconEnabled = MouseIconSavedState;
+        MouseIconWasActive = false;
     end;
-end;
-
--- Run dead last in the render step so that any game script that re-enables the
--- real cursor earlier in the frame gets overridden before the frame is drawn.
--- (The name is unique so it can be unbound again on unload.)
-local MouseIconBindName = 'LibraryMouseIcon_' .. tostring(math.random(1e6, 9e6));
-RunService:BindToRenderStep(MouseIconBindName, Enum.RenderPriority.Last.Value + 1, UpdateMouseIcon);
-
--- If something turns the real cursor back on while ours is active, turn it off again
--- straight away instead of waiting for the next frame.
-table.insert(Library.Signals, InputService:GetPropertyChangedSignal('MouseIconEnabled'):Connect(function()
-    if MouseIconWasActive and InputService.MouseIconEnabled then
-        InputService.MouseIconEnabled = false;
-    end;
-end));
-
-table.insert(Library.Signals, {
-    Disconnect = function()
-        pcall(function()
-            RunService:UnbindFromRenderStep(MouseIconBindName);
-        end);
-    end;
-});
+end))
 
 local function GetPlayersString()
     local PlayerList = {}
@@ -2253,7 +2231,7 @@ do
         local Toggle = self:AddToggle(Idx, {
             Text = Info.Text or 'Custom Mouse Icon';
             Default = Info.Default or false;
-            Tooltip = Info.Tooltip or 'Replaces the mouse cursor (while the menu is open, or always if AlwaysOn is set). Leave the image box empty to use a colored cursor instead.';
+            Tooltip = Info.Tooltip or 'Replaces the mouse cursor';
         });
 
         Library.MouseIcon.Size = Info.ImageSize or Library.MouseIcon.Size;
