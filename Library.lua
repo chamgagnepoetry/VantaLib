@@ -41,7 +41,6 @@ local Library = {
     MouseIcon = {
         Enabled = false;
         Image = '';
-        Color = Color3.fromRGB(0, 85, 255);
         Size = 32;
         AlwaysOn = false;
     };
@@ -85,7 +84,7 @@ end))
 
 -- Custom mouse icon (active while the menu is open, or always if MouseIcon.AlwaysOn is true).
 -- Image set  -> shows that Roblox-uploaded image at the mouse position.
--- Image empty -> shows the original library's triangle cursor in MouseIcon.Color.
+-- Image empty -> shows the original library's triangle cursor, colored by Library.AccentColor.
 local MouseIconGui = Instance.new('ScreenGui');
 ProtectGui(MouseIconGui);
 MouseIconGui.Name = 'LibraryMouseIcon';
@@ -141,8 +140,8 @@ end;
 
 function Library:CleanupMouseIcon()
     if MouseIconWasActive then
-        InputService.MouseIconEnabled = MouseIconSavedState;
         MouseIconWasActive = false;
+        InputService.MouseIconEnabled = MouseIconSavedState;
     end;
 
     if MouseTriangle then
@@ -154,14 +153,14 @@ function Library:CleanupMouseIcon()
     MouseIconGui:Destroy();
 end;
 
-table.insert(Library.Signals, RenderStepped:Connect(function()
+local function UpdateMouseIcon()
     local Config = Library.MouseIcon;
     local Active = Config.Enabled and (Library.Toggled or Config.AlwaysOn);
 
     if not Active then
         if MouseIconWasActive then
-            InputService.MouseIconEnabled = MouseIconSavedState;
             MouseIconWasActive = false;
+            InputService.MouseIconEnabled = MouseIconSavedState;
             HideMouseIcon();
         end;
 
@@ -199,7 +198,7 @@ table.insert(Library.Signals, RenderStepped:Connect(function()
             MouseTriangleOutline.Color = Color3.new(0, 0, 0);
         end;
 
-        MouseTriangle.Color = Config.Color;
+        MouseTriangle.Color = Library.AccentColor;
 
         MouseTriangle.PointA = Vector2.new(mPos.X, mPos.Y);
         MouseTriangle.PointB = Vector2.new(mPos.X + 16, mPos.Y + 6);
@@ -223,10 +222,32 @@ table.insert(Library.Signals, RenderStepped:Connect(function()
 
         InputService.MouseIconEnabled = false;
     elseif MouseIconWasActive then
-        InputService.MouseIconEnabled = MouseIconSavedState;
         MouseIconWasActive = false;
+        InputService.MouseIconEnabled = MouseIconSavedState;
     end;
-end))
+end;
+
+-- Run dead last in the render step so that any game script that re-enables the
+-- real cursor earlier in the frame gets overridden before the frame is drawn.
+-- (The name is unique so it can be unbound again on unload.)
+local MouseIconBindName = 'LibraryMouseIcon_' .. tostring(math.random(1e6, 9e6));
+RunService:BindToRenderStep(MouseIconBindName, Enum.RenderPriority.Last.Value + 1, UpdateMouseIcon);
+
+-- If something turns the real cursor back on while ours is active, turn it off again
+-- straight away instead of waiting for the next frame.
+table.insert(Library.Signals, InputService:GetPropertyChangedSignal('MouseIconEnabled'):Connect(function()
+    if MouseIconWasActive and InputService.MouseIconEnabled then
+        InputService.MouseIconEnabled = false;
+    end;
+end));
+
+table.insert(Library.Signals, {
+    Disconnect = function()
+        pcall(function()
+            RunService:UnbindFromRenderStep(MouseIconBindName);
+        end);
+    end;
+});
 
 local function GetPlayersString()
     local PlayerList = {}
@@ -2225,39 +2246,28 @@ do
     function Funcs:AddMouseIconChanger(Idx, Info)
         Info = Info or {};
 
-        -- Toggle (Toggles[Idx]) with a color picker (Options[Idx .. 'Color']) that
-        -- colors the fallback triangle cursor, followed by a textbox
-        -- (Options[Idx .. 'Image']) that takes a Roblox image id / rbxassetid.
+        -- Toggle (Toggles[Idx]) followed by a textbox (Options[Idx .. 'Image']) that takes a
+        -- Roblox image id / rbxassetid. With the textbox empty, the default triangle cursor
+        -- is used and it follows the library's accent color.
         local Toggle = self:AddToggle(Idx, {
             Text = Info.Text or 'Custom Mouse Icon';
             Default = Info.Default or false;
-            Tooltip = Info.Tooltip or 'Replaces the mouse cursor';
+            Tooltip = Info.Tooltip or 'Replaces the mouse cursor (while the menu is open, or always if AlwaysOn is set). Leave the image box empty to use the default cursor, which follows the accent color.';
         });
 
         Library.MouseIcon.Size = Info.ImageSize or Library.MouseIcon.Size;
         Library.MouseIcon.AlwaysOn = Info.AlwaysOn == true;
-
-        Toggle:AddColorPicker(Idx .. 'Color', {
-            Default = Info.DefaultColor or Library.AccentColor;
-            Title = Info.ColorTitle or 'Mouse Color';
-        });
 
         local Input = self:AddInput(Idx .. 'Image', {
             Text = Info.InputText or 'Mouse Icon Image';
             Default = Info.DefaultImage or '';
             Placeholder = Info.Placeholder or 'rbxassetid://123456789';
             Finished = Info.Finished or false;
-            Tooltip = 'Roblox-uploaded image id or rbxassetid:// link. Empty = colored cursor.';
+            Tooltip = 'Roblox-uploaded image id or rbxassetid:// link. Empty = default accent-colored cursor.';
         });
-
-        local ColorPicker = Options[Idx .. 'Color'];
 
         Toggle:OnChanged(function(Value)
             Library.MouseIcon.Enabled = Value;
-        end);
-
-        ColorPicker:OnChanged(function()
-            Library.MouseIcon.Color = ColorPicker.Value;
         end);
 
         Input:OnChanged(function(Value)
