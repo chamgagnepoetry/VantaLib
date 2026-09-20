@@ -141,8 +141,8 @@ end;
 
 function Library:CleanupMouseIcon()
     if MouseIconWasActive then
-        InputService.MouseIconEnabled = MouseIconSavedState;
         MouseIconWasActive = false;
+        InputService.MouseIconEnabled = MouseIconSavedState;
     end;
 
     if MouseTriangle then
@@ -154,14 +154,14 @@ function Library:CleanupMouseIcon()
     MouseIconGui:Destroy();
 end;
 
-table.insert(Library.Signals, RenderStepped:Connect(function()
+local function UpdateMouseIcon()
     local Config = Library.MouseIcon;
     local Active = Config.Enabled and (Library.Toggled or Config.AlwaysOn);
 
     if not Active then
         if MouseIconWasActive then
-            InputService.MouseIconEnabled = MouseIconSavedState;
             MouseIconWasActive = false;
+            InputService.MouseIconEnabled = MouseIconSavedState;
             HideMouseIcon();
         end;
 
@@ -223,10 +223,32 @@ table.insert(Library.Signals, RenderStepped:Connect(function()
 
         InputService.MouseIconEnabled = false;
     elseif MouseIconWasActive then
-        InputService.MouseIconEnabled = MouseIconSavedState;
         MouseIconWasActive = false;
+        InputService.MouseIconEnabled = MouseIconSavedState;
     end;
-end))
+end;
+
+-- Run dead last in the render step so that any game script that re-enables the
+-- real cursor earlier in the frame gets overridden before the frame is drawn.
+-- (The name is unique so it can be unbound again on unload.)
+local MouseIconBindName = 'LibraryMouseIcon_' .. tostring(math.random(1e6, 9e6));
+RunService:BindToRenderStep(MouseIconBindName, Enum.RenderPriority.Last.Value + 1, UpdateMouseIcon);
+
+-- If something turns the real cursor back on while ours is active, turn it off again
+-- straight away instead of waiting for the next frame.
+table.insert(Library.Signals, InputService:GetPropertyChangedSignal('MouseIconEnabled'):Connect(function()
+    if MouseIconWasActive and InputService.MouseIconEnabled then
+        InputService.MouseIconEnabled = false;
+    end;
+end));
+
+table.insert(Library.Signals, {
+    Disconnect = function()
+        pcall(function()
+            RunService:UnbindFromRenderStep(MouseIconBindName);
+        end);
+    end;
+});
 
 local function GetPlayersString()
     local PlayerList = {}
