@@ -3463,7 +3463,7 @@ function Library:CreateWindow(...)
             Size = UDim2.new(0.5, -7, 0, 25);
             Text = Text;
             TextColor3 = Library.AccentColor;
-            TextSize = 14;
+            TextSize = 16;
             TextXAlignment = Enum.TextXAlignment.Right;
             ZIndex = 1;
             Parent = Inner;
