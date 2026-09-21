@@ -3446,10 +3446,20 @@ function Library:CreateWindow(...)
         AnchorPoint = Vector2.new(0.5,0);
         Size = UDim2.new(0, 0, 0, 25);
         Text = Config.Title or '';
-        TextXAlignment = Enum.TextXAlignment.Left;
+        TextXAlignment = Enum.TextXAlignment.Center;
         ZIndex = 1;
         Parent = Inner;
     });
+
+    --[[local WindowLabel2 = Library:CreateLabel({
+        Position = UDim2.new(0, 7, 0, 0);
+        AnchorPoint = Vector2.new(0.5,0);
+        Size = UDim2.new(0, 0, 0, 25);
+        Text = Config.Title or '';
+        TextXAlignment = Enum.TextXAlignment.Right;
+        ZIndex = 1;
+        Parent = Inner;
+    });--]]
 
     local MainSectionOuter = Library:Create('Frame', {
         BackgroundColor3 = Library.BackgroundColor;
