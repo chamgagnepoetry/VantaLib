@@ -3398,6 +3398,7 @@ function Library:CreateWindow(...)
     end
 
     if type(Config.Title) ~= 'string' then Config.Title = 'No title' end
+    if type(Config.SubTitle) ~= 'string' or Config.SubTitle == '' then Config.SubTitle = nil end
     if type(Config.TabPadding) ~= 'number' then Config.TabPadding = 0 end
     if type(Config.MenuFadeTime) ~= 'number' then Config.MenuFadeTime = 0.2 end
 
@@ -3446,20 +3447,36 @@ function Library:CreateWindow(...)
         AnchorPoint = Vector2.new(0.5,0);
         Size = UDim2.new(0, 0, 0, 25);
         Text = Config.Title or '';
-        TextXAlignment = Enum.TextXAlignment.Center;
+        TextXAlignment = Enum.TextXAlignment.Left;
         ZIndex = 1;
         Parent = Inner;
     });
 
-    --[[local WindowLabel2 = Library:CreateLabel({
-        Position = UDim2.new(0, 7, 0, 0);
-        AnchorPoint = Vector2.new(0.5,0);
-        Size = UDim2.new(0, 0, 0, 25);
-        Text = Config.Title or '';
-        TextXAlignment = Enum.TextXAlignment.Right;
-        ZIndex = 1;
-        Parent = Inner;
-    });--]]
+    -- Optional sub title: same as the title label, but on the far right, smaller,
+    -- and always colored with the library's accent color. Only created if a SubTitle was passed.
+    local WindowSubLabel;
+
+    local function CreateSubLabel(Text)
+        WindowSubLabel = Library:CreateLabel({
+            Position = UDim2.new(1, -7, 0, 0);
+            AnchorPoint = Vector2.new(1, 0);
+            Size = UDim2.new(0.5, -7, 0, 25);
+            Text = Text;
+            TextColor3 = Library.AccentColor;
+            TextSize = 14;
+            TextXAlignment = Enum.TextXAlignment.Right;
+            ZIndex = 1;
+            Parent = Inner;
+        });
+
+        -- CreateLabel registers TextColor3 as 'FontColor'; point it at the accent instead
+        -- so it follows accent changes (including the rainbow accent).
+        Library.RegistryMap[WindowSubLabel].Properties.TextColor3 = 'AccentColor';
+    end;
+
+    if Config.SubTitle then
+        CreateSubLabel(Config.SubTitle);
+    end;
 
     local MainSectionOuter = Library:Create('Frame', {
         BackgroundColor3 = Library.BackgroundColor;
@@ -3521,6 +3538,23 @@ function Library:CreateWindow(...)
 
     function Window:SetWindowTitle(Title)
         WindowLabel.Text = Title;
+    end;
+
+    function Window:SetWindowSubTitle(SubTitle)
+        if type(SubTitle) ~= 'string' or SubTitle == '' then
+            if WindowSubLabel then
+                WindowSubLabel.Visible = false;
+            end;
+
+            return;
+        end;
+
+        if not WindowSubLabel then
+            CreateSubLabel(SubTitle);
+        else
+            WindowSubLabel.Text = SubTitle;
+            WindowSubLabel.Visible = true;
+        end;
     end;
 
     function Window:AddTab(Name)
