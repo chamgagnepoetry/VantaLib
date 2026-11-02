@@ -1903,6 +1903,7 @@ do
             PlaceholderText = Info.Placeholder or '';
 
             Text = Info.Default or '';
+            ClearTextOnFocus = false;
             TextColor3 = Library.FontColor;
             TextSize = 14;
             TextStrokeTransparency = 0;
